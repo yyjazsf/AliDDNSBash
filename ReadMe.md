@@ -1,5 +1,33 @@
 # AliDDNSBash
 
+## 我修改的
+
+only test in asuswrt-merlin
+
+- add `/sbin/ddns_custom_updated 0 or 1`
+- use IP which in arg
+
+```bash
+cd /jffs/scripts
+nano ddns-start
+
+chmod +x ddns-start
+```
+
+自动生成ddns-start  需要创建文件 alikey.js, 以及nodejs
+
+```js
+module.exports = {
+    AccessKeyId: "",
+    AccessKeySec: "",
+    DomainRecordId: "",
+    DomainRR: "home", // demo
+    DomainName: "yingyj.com" // demo
+};
+```
+
+in admin page, open ddns, select custom,
+
 ## 介绍
 
 如果使用了阿里云（万网）的域名解析服务的话，那么就可以通过它提供的API，使用HTTP访问动态修改解析地址，以实现DDNS的功能。阿里云也提供了一些语言的SDK，但是并没有Shell版本的。
@@ -11,7 +39,6 @@
 本脚本在**OpenWRT**中测试通过。（也就是在这种场合会连个Python都跑不了，而一定要使用Shell…）
 
 参考：[阿里云解析API文档](https://help.aliyun.com/document_detail/29739.html)
-
 
 ## 功能
 

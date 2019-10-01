@@ -1,15 +1,14 @@
 #!/bin/sh
 #By h46incon
-
 #Dependences: bind-dig, curl, openssl-util, tr, sort
 
 ## ----- Setting -----
-AccessKeyId="testid"
-AccessKeySec="testsecret"
-DomainRecordId="00000"
+AccessKeyId="{{AccessKeyId}}"
+AccessKeySec="{{AccessKeySec}}"
+DomainRecordId="{{DomainRecordId}}"
 # DomainRR, use "@" to set top level domain
-DomainRR="www"
-DomainName="example.com"
+DomainRR="{{DomainRR}}"
+DomainName="{{DomainName}}"
 DomainType="A"
 # DNS Server for check current IP of the record
 # Perferred setting is your domain name service provider
@@ -18,9 +17,13 @@ DNSServer="dns9.hichina.com"
 
 # The server address of ALi API
 ALiServerAddr="alidns.aliyuncs.com"
+
 # A url provided by a third-party to echo the public IP of host
+# IP="$(curl -fs4 https://myip.dnsomatic.com/)"
 MyIPEchoUrl="http://members.3322.org/dyndns/getip"
 # MyIPEchoUrl="http://icanhazip.com"
+
+IP=$1
 
 # the generatation a random number can be modified here
 #((rand_num=${RANDOM} * ${RANDOM} * ${RANDOM}))
@@ -46,24 +49,21 @@ _debug()	{ ${_DEBUG_} && echo "> $*"; }
 _log() 		{ ${_LOG_}   && echo "* $*"; }
 _err() 		{ ${_ERR_}   && echo "! $*"; }
 
-reset_func_ret()
-{
+reset_func_ret() {
 	_func_ret=""
 }
 
 ## ----- params -----
 # @Param1: Key
 # @Param2: Value
-put_param()
-{
+put_param() {
 	eval g_pkey_${g_pn}=$1
 	eval g_pval_$1=$2
 	g_pn=$((g_pn + 1))
 }
 
 # This function will init all public params EXCLUDE "Signature"
-put_params_public()
-{
+put_params_public() {
 	put_param "Format" "JSON"
 	put_param "Version" "2015-01-09"
 	put_param "AccessKeyId" "${AccessKeyId}"
@@ -81,8 +81,7 @@ put_params_public()
 }
 
 # @Param1: New IP address
-put_params_UpdateDomainRecord()
-{
+put_params_UpdateDomainRecord() {
 	put_param "Action" "UpdateDomainRecord"
 	put_param "RR" "${DomainRR}"
 	put_param "RecordId" "${DomainRecordId}"
@@ -90,14 +89,12 @@ put_params_UpdateDomainRecord()
 	put_param "Value" "${1}"
 }
 
-put_params_DescribeDomainRecords()
-{
+put_params_DescribeDomainRecords(){
 	put_param "Action" "DescribeDomainRecords"
 	put_param "DomainName" ${DomainName}
 }
 
-pack_params()
-{
+pack_params() {
 	reset_func_ret
 	local ret=""
 	local key key_enc val val_enc
@@ -120,19 +117,16 @@ pack_params()
 	_func_ret=${ret%"&"}
 }
 
-
 # ----- Other utils -----
-get_my_ip()
-{
+get_IP() {
 	reset_func_ret
-	local my_ip=$(curl ${MyIPEchoUrl} --silent --connect-timeout 10)
+	local IP=$(curl ${MyIPEchoUrl} --silent --connect-timeout 10)
 
-	#echo ${my_ip}
-	_func_ret=${my_ip}
+	#echo ${IP}
+	_func_ret=${IP}
 }
 
-get_domain_ip()
-{
+get_domain_ip() {
 	reset_func_ret
 	local full_domain=""
 	if [ -z "${DomainRR}" ] || [ "${DomainRR}" == "@" ]; then
@@ -152,8 +146,7 @@ get_domain_ip()
 }
 
 # @Param1: Raw url to be encoded
-rawurl_encode() 
-{
+rawurl_encode() {
 	reset_func_ret
 
 	local string="${1}"
@@ -175,8 +168,7 @@ rawurl_encode()
 	_func_ret="${encoded}" 
 }
 
-calc_signature()
-{
+calc_signature() {
 	reset_func_ret
 
 	local sorted_key=$(
@@ -216,8 +208,7 @@ calc_signature()
 	_func_ret=$(/bin/echo -n ${str_to_signed} | openssl dgst -binary -sha1 -hmac ${key_sign} | openssl enc -base64)
 }
 
-send_request()
-{
+send_request() {
 	# put signature
 	calc_signature
 	local signature=${_func_ret}
@@ -231,26 +222,28 @@ send_request()
 	_debug Request addr: ${req_url}
 
 	local respond=$(curl -3 ${req_url} --silent --connect-timeout 10 -w "HttpCode:%{http_code}")
+
+	# if HttpCode:200 else 
 	echo ${respond}
+	/sbin/ddns_custom_updated 1
 }
 
-describe_record()
-{
+describe_record() {
 	put_params_public
 	put_params_DescribeDomainRecords
 
 	send_request
 }
 
-update_record()
-{
+update_record() {
 	# get ip
-	get_my_ip
-	local my_ip=${_func_ret}
+	# get_IP
+	# local IP=${_func_ret}
 
 	# Check if need update
-	_debug My IP: ${my_ip}
-	if [ -z "${my_ip}" ]; then
+	_debug My IP: ${IP}
+	if [ -z "${IP}" ]; then
+		/sbin/ddns_custom_updated 0
 		_err Could not get my ip, exitting...
 		exit
 	fi
@@ -259,22 +252,22 @@ update_record()
 	local domain_ip=${_func_ret}
 	_debug Current Domain IP: ${domain_ip}
 
-	if [ "${my_ip}" == "${domain_ip}" ]; then
-		_log Need not to update, current IP: ${my_ip}
+	if [ "${IP}" == "${domain_ip}" ]; then
+		/sbin/ddns_custom_updated 1
+		_log Need not to update, current IP: ${IP}
 		exit
 	fi
 
 	# init params
 	put_params_public
-	put_params_UpdateDomainRecord ${my_ip}
+	put_params_UpdateDomainRecord ${IP}
 
 	send_request
 }
 
-main()
-{
-	describe_record
-	#update_record
+main() {
+	# describe_record
+	update_record
 }
 
 main

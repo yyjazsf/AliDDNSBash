@@ -1,0 +1,31 @@
+{
+  "name": "aliyun-ddns",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "build": ""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yyjazsf/AliDDNSBash.git"
+  },
+  "keywords": [
+    "aliyun",
+    "ddns"
+  ],
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm test",
+      "pre-push": "node scripts/precommit.js"
+    }
+  },
+  "author": "h46incon, yyjazsf",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yyjazsf/AliDDNSBash/issues"
+  },
+  "homepage": "https://github.com/yyjazsf/AliDDNSBash#readme",
+  "dependencies": {
+    "husky": "^3.0.7"
+  }
+}
